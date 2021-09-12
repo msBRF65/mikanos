@@ -2,10 +2,12 @@
 #include <Library/UefiLib.h>
 #include <Library/UefiBootServicesTableLib.h>
 #include <Library/PrintLib.h>
+#include <Library/MemoryAllocationLib.h>
 #include <Protocol/LoadedImage.h>
 #include <Protocol/SimpleFileSystem.h>
 #include <Protocol/DiskIo2.h>
 #include <Protocol/BlockIo.h>
+#include <Guid/FileInfo.h>
 
 // #@@range_begin(struct_memory_map)
 struct MemoryMap
@@ -140,13 +142,57 @@ EFI_STATUS OpenRootDir(EFI_HANDLE image_handle, EFI_FILE_PROTOCOL **root)
   return EFI_SUCCESS;
 }
 
+EFI_STATUS OpenGOP(EFI_HANDLE image_handle,
+                   EFI_GRAPHICS_OUTPUT_PROTOCOL **gop)
+{
+  UINTN num_gop_handles = 0;
+  EFI_HANDLE *gop_handles = NULL;
+  gBS->LocateHandleBuffer(
+      ByProtocol,
+      &gEfiGraphicsOutputProtocolGuid,
+      NULL,
+      &num_gop_handles,
+      &gop_handles);
+
+  gBS->OpenProtocol(
+      gop_handles[0],
+      &gEfiGraphicsOutputProtocolGuid,
+      (VOID **)gop,
+      image_handle,
+      NULL,
+      EFI_OPEN_PROTOCOL_BY_HANDLE_PROTOCOL);
+
+  FreePool(gop_handles);
+
+  return EFI_SUCCESS;
+}
+
+const CHAR16 *GetPixelFormatUnicode(EFI_GRAPHICS_PIXEL_FORMAT fmt)
+{
+  switch (fmt)
+  {
+  case PixelRedGreenBlueReserved8BitPerColor:
+    return L"PixelRedGreenBlueReserved8BitPerColor";
+  case PixelBlueGreenRedReserved8BitPerColor:
+    return L"PixelBlueGreenRedReserved8BitPerColor";
+  case PixelBitMask:
+    return L"PixelBitMask";
+  case PixelBltOnly:
+    return L"PixelBltOnly";
+  case PixelFormatMax:
+    return L"PixelFormatMax";
+  default:
+    return L"InvalidPixelFormat";
+  }
+}
+
 EFI_STATUS EFIAPI UefiMain(
     EFI_HANDLE image_handle,
     EFI_SYSTEM_TABLE *system_table)
 {
   Print(L"Hello, Mikan World!\n");
 
-  // #@@range_begin(main)
+  // メモリマップを読み込む
   CHAR8 memmap_buf[4096 * 4];
   struct MemoryMap memmap = {sizeof(memmap_buf), memmap_buf, 0, 0, 0, 0};
   GetMemoryMap(&memmap);
@@ -161,7 +207,70 @@ EFI_STATUS EFIAPI UefiMain(
 
   SaveMemoryMap(&memmap, memmap_file);
   memmap_file->Close(memmap_file);
-  // #@@range_end(main)
+
+  // GOPを取得して画面描画
+  EFI_GRAPHICS_OUTPUT_PROTOCOL *gop;
+  OpenGOP(image_handle, &gop);
+  Print(L"Resolution: %ux%u, Pixel Format: %s, %u pixels/line\n",
+        gop->Mode->Info->HorizontalResolution,
+        gop->Mode->Info->VerticalResolution,
+        GetPixelFormatUnicode(gop->Mode->Info->PixelFormat),
+        gop->Mode->Info->PixelsPerScanLine);
+  Print(L"Frame Buffer: 0x%8lx - 0x%8lx, Size: %lu bytes\n",
+        gop->Mode->FrameBufferBase, gop->Mode->FrameBufferBase + gop->Mode->FrameBufferSize,
+        gop->Mode->FrameBufferSize);
+
+  UINT8 *frame_buffer = (UINT8 *)gop->Mode->FrameBufferBase;
+  for (UINTN i = 0; i < gop->Mode->FrameBufferSize; ++i)
+  {
+    frame_buffer[i] = 255;
+  }
+
+  // カーネルファイルを読み込む
+  EFI_FILE_PROTOCOL *kernel_file;
+  root_dir->Open(root_dir, &kernel_file, L"\\kernel.elf",
+                 EFI_FILE_MODE_READ, 0);
+
+  UINTN file_info_size = sizeof(EFI_FILE_INFO) + sizeof(CHAR16) * 12;
+  UINT8 file_info_buffer[file_info_size];
+  kernel_file->GetInfo(kernel_file, &gEfiFileInfoGuid, &file_info_size, file_info_buffer);
+
+  EFI_FILE_INFO *file_info = (EFI_FILE_INFO *)file_info_buffer;
+  UINTN kernel_file_size = file_info->FileSize;
+
+  EFI_PHYSICAL_ADDRESS kernel_base_addr = 0x100000;
+  gBS->AllocatePages(AllocateAddress, EfiLoaderData,
+                     (kernel_file_size + 0xfff) / 0x1000, &kernel_base_addr);
+  kernel_file->Read(kernel_file, &kernel_file_size, (VOID *)kernel_base_addr);
+  Print(L"Kernel:0x%0lx (%lu bytes)\n", kernel_base_addr, kernel_file_size);
+
+  // カーネル起動前にブートサービスを停止させる
+  EFI_STATUS status;
+  status = gBS->ExitBootServices(image_handle, memmap.map_key);
+  if (EFI_ERROR(status))
+  {
+    status = GetMemoryMap(&memmap);
+    if (EFI_ERROR(status))
+    {
+      Print(L"failed to get memory map: %r\n", status);
+      while (1)
+        ;
+    }
+    status = gBS->ExitBootServices(image_handle, memmap.map_key);
+    if (EFI_ERROR(status))
+    {
+      Print(L"Could not exit boot service: %r\n", status);
+      while (1)
+        ;
+    }
+  }
+
+  // カーネルを起動する
+  UINT64 entry_addr = *(UINT64 *)(kernel_base_addr + 24);
+
+  typedef void EntryPointType(void);
+  EntryPointType *entry_point = (EntryPointType *)entry_addr;
+  entry_point();
 
   Print(L"All done\n");
 

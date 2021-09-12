@@ -1,0 +1,4 @@
+*.log
+OriginMain.c
+*.o
+*.elf
