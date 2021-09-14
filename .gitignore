@@ -2,3 +2,5 @@
 OriginMain.c
 *.o
 *.elf
+*.d
+*.bin
