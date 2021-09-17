@@ -7,7 +7,7 @@
 
 namespace
 {
-    LogLevel log_level = kDebug;
+    LogLevel log_level = kInfo;
 }
 
 extern Console *console;
