@@ -43,7 +43,7 @@ namespace
         }
 
         // PCI-to-PCIブリッジだった場合はセカンダリバスに接続されたPCIデバイスを探索
-        if (class_code.Match(0x06u, 0x04u)) 
+        if (class_code.Match(0x06u, 0x04u))
         {
             auto bus_numbers = ReadBusNumbers(bus, device, function);
             uint8_t secondary_bus = (bus_numbers >> 8) & 0xffu;
@@ -82,7 +82,8 @@ namespace
     {
         for (uint8_t device = 0; device < 32; ++device)
         {
-            if (ReadVendorId(bus, device, 0) == 0xffffu)
+            // 接続されたデバイスが存在するか調べる
+            if (ReadVendorId(bus, device, 0) == 0xffffu) 
             {
                 continue;
             }

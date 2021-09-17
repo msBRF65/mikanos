@@ -176,6 +176,7 @@ KernelMain(const FrameBufferConfig &frame_buffer_config)
 
         if (port.IsConnected())
         {
+            // ポートのリセット、xHCの内部設定、クラスドライブの生成を行う
             if (auto err = ConfigurePort(xhc, port))
             {
                 Log(kError, "failed to configure port: %s at %s:%d\n",
@@ -185,6 +186,7 @@ KernelMain(const FrameBufferConfig &frame_buffer_config)
         }
     }
 
+    // xHCに溜まったイベントを処理
     while (1)
     {
         if (auto err = ProcessEvent(xhc))
