@@ -11,18 +11,7 @@
 #include <Guid/FileInfo.h>
 #include "frame_buffer_config.hpp"
 #include "elf.h"
-
-// #@@range_begin(struct_memory_map)
-struct MemoryMap
-{
-  UINTN buffer_size;
-  VOID *buffer;
-  UINTN map_size;
-  UINTN map_key;
-  UINTN descriptor_size;
-  UINT32 descriptor_version;
-};
-// #@@range_end(struct_memory_map)
+#include "memory_map.hpp"
 
 // #@@range_begin(get_memory_map)
 EFI_STATUS GetMemoryMap(struct MemoryMap *map)
@@ -401,9 +390,9 @@ EFI_STATUS EFIAPI UefiMain(
     Halt();
   }
 
-  typedef void EntryPointType(const struct FrameBufferConfig *);
+  typedef void EntryPointType(const struct FrameBufferConfig *, const struct MemoryMap *);
   EntryPointType *entry_point = (EntryPointType *)entry_addr;
-  entry_point(&config);
+  entry_point(&config, &memmap);
 
   Print(L"All done\n");
 
