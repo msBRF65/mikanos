@@ -11,12 +11,14 @@ unsigned int Layer::ID() const
     return id_;
 }
 
-Layer& Layer::SetWindow(const std::shared_ptr<Window>& window){
+Layer &Layer::SetWindow(const std::shared_ptr<Window> &window)
+{
     window_ = window;
     return *this;
 }
 
-std::shared_ptr<Window> Layer::GetWindow() const {
+std::shared_ptr<Window> Layer::GetWindow() const
+{
     return window_;
 }
 
@@ -32,11 +34,11 @@ Layer &Layer::MoveRelative(Vector2D<int> pos_diff)
     return *this;
 }
 
-void Layer::DrawTo(PixelWriter &writer) const
+void Layer::DrawTo(FrameBuffer &screen) const
 {
     if (window_)
     {
-        window_->DrawTo(writer, pos_);
+        window_->DrawTo(screen, pos_);
     }
 }
 
@@ -54,8 +56,9 @@ Layer *LayerManager::FindLayer(unsigned int id)
     return it->get();
 }
 
-void LayerManager::SetWriter(PixelWriter* writer){
-    writer_ = writer;
+void LayerManager::SetWriter(FrameBuffer *screen)
+{
+    screen_ = screen;
 }
 
 Layer &LayerManager::NewLayer()
@@ -78,7 +81,7 @@ void LayerManager::Draw() const
 {
     for (auto layer : layer_stack_)
     {
-        layer->DrawTo(*writer_);
+        layer->DrawTo(*screen_);
     }
 }
 
@@ -123,4 +126,4 @@ void LayerManager::UpDown(unsigned int id, int new_height)
     layer_stack_.insert(new_pos, layer);
 }
 
-LayerManager* layer_manager;
+LayerManager *layer_manager;
