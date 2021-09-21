@@ -40,6 +40,7 @@ public:
 
     int Width() const;
     int Height() const;
+    void Move(Vector2D<int> dst_pos, const Rectangle<int> &src);
 
 private:
     int width_, height_;
