@@ -45,7 +45,7 @@ public:
     static const auto kFrameCount{kMaxPhysicalMemoryBytes / kBytesPerFrame};
 
     using MapLineType = unsigned long;
-    // ビットマップ配列の1つの要素のビット数 
+    // ビットマップ配列の1つの要素のビット数
     static const size_t kBitsPerMapLine{8 * sizeof(MapLineType)};
 
     BitmapMemoryManager();
@@ -64,3 +64,5 @@ private:
     bool GetBit(FrameID frame) const;
     void SetBit(FrameID frame, bool allocated);
 };
+
+Error InitializeHeap(BitmapMemoryManager &memory_manager);
