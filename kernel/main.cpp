@@ -92,8 +92,8 @@ void MouseObserver(int8_t displacement_x, int8_t displacement_y)
 {
     auto newpos = mouse_position + Vector2D<int>{displacement_x, displacement_y};
     newpos = ElementMin(newpos, screen_size + Vector2D<int>{-1, -1});
-    mouse_position = ElementMax(newpos, {0,0});
-    
+    mouse_position = ElementMax(newpos, {0, 0});
+
     layer_manager->Move(mouse_layer_id, mouse_position);
     layer_manager->Draw();
 }
@@ -310,6 +310,12 @@ KernelMainNewStack(
         std::make_shared<Window>(kMouseCursorWidth, kMouseCursorHeight, frame_buffer_config.pixel_format);
     mouse_window->SetTransparentColor(kMouseTransparentColor);
     DrawMouseCursor(mouse_window->Writer(), {0, 0});
+    mouse_position = {200, 200};
+
+    auto main_window = std::make_shared<Window>(160, 68, frame_buffer_config.pixel_format);
+    DrawWindow(*main_window->Writer(), "Hello Windoow");
+    WriteString(*main_window->Writer(), {24, 28}, "Welcome to", {0, 0, 0});
+    WriteString(*main_window->Writer(), {24, 44}, " MikanOS world!", {0, 0, 0});
 
     FrameBuffer screen;
     if (auto err = screen.Initialize(frame_buffer_config))
@@ -329,9 +335,14 @@ KernelMainNewStack(
                          .SetWindow(mouse_window)
                          .Move({200, 200})
                          .ID();
+    auto main_window_layer_id = layer_manager->NewLayer()
+                                    .SetWindow(main_window)
+                                    .Move({300, 100})
+                                    .ID();
 
     layer_manager->UpDown(bglayer_id, 0);
     layer_manager->UpDown(mouse_layer_id, 1);
+    layer_manager->UpDown(main_window_layer_id, 1);
     layer_manager->Draw();
 
     // メッセージを繰り返し処理するイベントループ
