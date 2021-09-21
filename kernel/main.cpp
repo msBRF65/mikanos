@@ -21,6 +21,7 @@
 #include "segment.hpp"
 #include "memory_manager.hpp"
 #include "layer.hpp"
+#include "timer.hpp"
 #include "usb/memory.hpp"
 #include "usb/device.hpp"
 #include "usb/classdriver/mouse.hpp"
@@ -80,7 +81,11 @@ unsigned int mouse_layer_id;
 void MouseObserver(int8_t displacement_x, int8_t displacement_y)
 {
     layer_manager->MoveRelative(mouse_layer_id, {displacement_x, displacement_y});
+    StartLAPICTimer();
     layer_manager->Draw();
+    auto elapsed = LAPICTimerElapsed();
+    StopLAPICTimer();
+    printk("MouseObserver: elapsed = %u\n", elapsed);
 }
 
 usb::xhci::Controller *xhc;
@@ -129,6 +134,8 @@ KernelMainNewStack(
     console->SetWriter(pixel_writer);
     printk("welcome to MikanOS!\n");
     SetLogLevel(kWarn);
+
+    InitializeLAPICTimer();
 
     // セグメンテーションの設定
     SetupSegments();
