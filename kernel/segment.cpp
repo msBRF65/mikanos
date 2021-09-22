@@ -7,7 +7,7 @@ namespace
     std::array<SegmentDescriptor, 3> gdt;
 }
 
-void SetCodeSegment(SegmentDescriptor& desc,
+void SetCodeSegment(SegmentDescriptor &desc,
                     DescriptorType type,
                     unsigned int descriptor_privilege_level,
                     uint32_t base,
@@ -49,4 +49,12 @@ void SetupSegments()
     SetCodeSegment(gdt[1], DescriptorType::kExecuteRead, 0, 0, 0xfffff);
     SetDataSegment(gdt[2], DescriptorType::kReadWrite, 0, 0, 0xfffff);
     LoadGDT(sizeof(gdt) - 1, reinterpret_cast<uintptr_t>(&gdt[0]));
+}
+
+void InitializeSegmentation()
+{
+    SetupSegments();
+
+    SetDSAll(kKernelDS);
+    SetCSSS(kKernelCS, kKernelSS);
 }

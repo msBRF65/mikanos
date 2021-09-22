@@ -102,3 +102,17 @@ void Console::SetWindow(const std::shared_ptr<Window> &window)
     writer_ = window->Writer();
     Refresh();
 }
+
+Console *console;
+
+namespace
+{
+    char console_buf[sizeof(Console)];
+}
+
+void InitializeConsole()
+{
+    console = new(console_buf) Console{
+        kDesktopFGColor, kDesktopBGColor};
+    console->SetWriter(screen_writer);
+}

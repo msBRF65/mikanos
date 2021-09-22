@@ -1,7 +1,7 @@
 #pragma once
 
+#include <memory>
 #include "graphics.hpp"
-#include <cstdint>
 #include "window.hpp"
 
 class Console
@@ -27,3 +27,6 @@ private:
     int cursor_row_, cursor_column_;
     unsigned int layer_id_;
 };
+
+extern Console* console;
+void InitializeConsole();
