@@ -20,7 +20,8 @@ public:
     Layer &Move(Vector2D<int> pos);
     Layer &MoveRelative(Vector2D<int> pos_diff);
 
-    void DrawTo(FrameBuffer &screen) const;
+    Vector2D<int> GetPosition() const;
+    void DrawTo(FrameBuffer &screen, const Rectangle<int> &area) const;
 
 private:
     unsigned int id_;
@@ -34,7 +35,8 @@ public:
     void SetWriter(FrameBuffer *writer);
     Layer &NewLayer();
 
-    void Draw() const;
+    void Draw(const Rectangle<int> &area) const;
+    void Draw(unsigned int id) const;
 
     void Move(unsigned int id, Vector2D<int> new_position);
     void MoveRelative(unsigned int id, Vector2D<int> pos_diff);
@@ -44,6 +46,7 @@ public:
 
 private:
     FrameBuffer *screen_{nullptr};
+    mutable FrameBuffer back_buffer_{};
     std::vector<std::unique_ptr<Layer>> layers_{};
     std::vector<Layer *> layer_stack_{};
     unsigned int latest_id_{0};

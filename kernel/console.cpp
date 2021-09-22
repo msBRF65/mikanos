@@ -33,7 +33,7 @@ void Console::PutString(const char *s)
     }
     if (layer_manager)
     {
-        layer_manager->Draw();
+        layer_manager->Draw(layer_id_);
     }
 }
 
@@ -48,7 +48,7 @@ void Console::Newline()
 
     if (window_)
     {
-        Rectangle<int> move_src{{0,16}, {8 * kColumns, 16 * (kRows - 1)}};
+        Rectangle<int> move_src{{0, 16}, {8 * kColumns, 16 * (kRows - 1)}};
         window_->Move({0, 0}, move_src);
         FillRectangle(*writer_, {0, 16 * (kRows - 1)}, {8 * kColumns, 16}, bg_color_);
     }
@@ -82,8 +82,20 @@ void Console::Refresh()
     }
 }
 
-void Console::SetWindow(const std::shared_ptr<Window>& window){
-    if(window == window_){
+void Console::SetLayerID(unsigned int layer_id)
+{
+    layer_id_ = layer_id;
+}
+
+unsigned int Console::LayerID() const
+{
+    return layer_id_;
+}
+
+void Console::SetWindow(const std::shared_ptr<Window> &window)
+{
+    if (window == window_)
+    {
         return;
     }
     window_ = window;
