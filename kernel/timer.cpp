@@ -1,5 +1,6 @@
 #include "timer.hpp"
 #include "interrupt.hpp"
+#include <limits>
 
 namespace
 {
@@ -10,11 +11,15 @@ namespace
     volatile uint32_t &divide_config = *reinterpret_cast<uint32_t *>(0xfee003e0);
 }
 
-void InitializeLAPICTimer()
+TimerManager *timer_manager;
+
+void InitializeLAPICTimer(std::deque<Message> &msg_queue)
 {
+    timer_manager = new TimerManager{msg_queue};
+
     divide_config = 0b1011;
     lvt_timer = (0b010 << 16) | InterruptVector::kLAPICTimer;
-    initial_count = kCountMax;
+    initial_count = 0x1000000u;
 }
 
 void StartLAPICTimer()
@@ -30,4 +35,42 @@ uint32_t LAPICTimerElapsed()
 void StopLAPICTimer()
 {
     initial_count = 0;
+}
+
+void TimerManager::Tick()
+{
+    ++tick_;
+    while (true)
+    {
+        const auto &t = timers_.top();
+        if (t.Timeout() > tick_)
+        {
+            break;
+        }
+        Message m{Message::kTimerTimeout};
+        m.arg.timer.timeout = t.Timeout();
+        m.arg.timer.value = t.Value();
+        msg_queue_.push_back(m);
+
+        timers_.pop();
+    }
+}
+
+void LAPICTimerOnInterrupt()
+{
+    timer_manager->Tick();
+}
+
+Timer::Timer(unsigned long timeout, int value) : timeout_{timeout}, value_{value}
+{
+}
+
+TimerManager::TimerManager(std::deque<Message> &msg_queue) : msg_queue_{msg_queue}
+{
+    timers_.push(Timer{std::numeric_limits<unsigned long>::max(), -1});
+}
+
+void TimerManager::AddTimer(const Timer &timer)
+{
+    timers_.push(timer);
 }
