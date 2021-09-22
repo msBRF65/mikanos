@@ -84,6 +84,7 @@ KernelMainNewStack(
     InitializePCI();
     usb::xhci::Initialize();
     acpi::Initialize(acpi_table);
+
     InitializeLAPICTimer(*main_queue);
 
     timer_manager->AddTimer(Timer(200, 2));
