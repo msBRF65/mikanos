@@ -26,6 +26,7 @@
 #include "message.hpp"
 #include "timer.hpp"
 #include "acpi.hpp"
+#include "keyboard.hpp"
 
 int printk(const char *format, ...)
 {
@@ -65,7 +66,7 @@ extern "C" void
 KernelMainNewStack(
     const FrameBufferConfig &frame_buffer_config_ref,
     const MemoryMap &memory_map_ref,
-    const acpi::RSDP& acpi_table)
+    const acpi::RSDP &acpi_table)
 {
     MemoryMap memory_map{memory_map_ref};
 
@@ -86,9 +87,7 @@ KernelMainNewStack(
     acpi::Initialize(acpi_table);
 
     InitializeLAPICTimer(*main_queue);
-
-    timer_manager->AddTimer(Timer(200, 2));
-    timer_manager->AddTimer(Timer(600, -1));
+    InitializeKeyboard(*main_queue);
 
     InitializeLayer();
     InitializeMainWindow();
@@ -126,17 +125,14 @@ KernelMainNewStack(
         case Message::kInterruptXHCI:
             usb::xhci::ProcessEvents();
             break;
-        case Message::kInterruptLAPICTimer:
-            printk("Timer interrupt\n");
-            break;
         case Message::kTimerTimeout:
-            printk("Timer:: timeout = %lu, value = %d\n",
-                   msg.arg.timer.timeout, msg.arg.timer.value);
-            if (msg.arg.timer.value > 0)
+            break;
+        case Message::kKeyPush:
+            if (msg.arg.keyboard.ascii != 0)
             {
-                timer_manager->AddTimer(Timer(
-                    msg.arg.timer.timeout + 100, msg.arg.timer.value + 1));
+                printk("%c", msg.arg.keyboard.ascii);
             }
+            break;
         default:
             Log(kError, "Unknown message type: %d\n", msg.type);
         }

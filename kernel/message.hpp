@@ -2,19 +2,24 @@
 
 struct Message
 {
-  enum Type
-  {
-    kInterruptXHCI,
-    kInterruptLAPICTimer,
-    kTimerTimeout,
-  } type;
-
-  union
-  {
-    struct
+    enum Type
     {
-      unsigned long timeout;
-      int value;
-    } timer;
-  } arg;
+        kInterruptXHCI,
+        kTimerTimeout,
+        kKeyPush,
+    } type;
+
+    union
+    {
+        struct
+        {
+            unsigned long timeout;
+            int value;
+        } timer;
+        struct
+        {
+            uint8_t keycode;
+            char ascii;
+        } keyboard;
+    } arg;
 };
