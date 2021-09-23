@@ -29,7 +29,7 @@ public:
     Window(const Window &rhs) = delete;
     Window &operator=(const Window &rhs) = delete;
 
-    void DrawTo(FrameBuffer &dst, Vector2D<int> position, const Rectangle<int>& area);
+    void DrawTo(FrameBuffer &dst, Vector2D<int> position, const Rectangle<int> &area);
     void SetTransparentColor(std::optional<PixelColor> c);
     WindowWriter *Writer();
 
@@ -53,3 +53,5 @@ private:
 };
 
 void DrawWindow(PixelWriter &writer, const char *title);
+
+void DrawTextbox(PixelWriter &writer, Vector2D<int> pos, Vector2D<int> size);
