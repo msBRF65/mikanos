@@ -1,6 +1,7 @@
 #include "timer.hpp"
 #include "interrupt.hpp"
 #include "acpi.hpp"
+#include "task.hpp"
 #include <limits>
 
 namespace
@@ -49,9 +50,11 @@ void StopLAPICTimer()
     initial_count = 0;
 }
 
-void TimerManager::Tick()
+bool TimerManager::Tick()
 {
     ++tick_;
+
+    bool task_timer_timeout = false;
     while (true)
     {
         const auto &t = timers_.top();
@@ -59,6 +62,15 @@ void TimerManager::Tick()
         {
             break;
         }
+
+        if (t.Value() == kTaskTimerValue)
+        {
+            task_timer_timeout = true;
+            timers_.pop();
+            timers_.push(Timer{tick_ + kTaskTimerPeriod, kTaskTimerValue});
+            continue;
+        }
+
         Message m{Message::kTimerTimeout};
         m.arg.timer.timeout = t.Timeout();
         m.arg.timer.value = t.Value();
@@ -66,11 +78,18 @@ void TimerManager::Tick()
 
         timers_.pop();
     }
+    return task_timer_timeout;
 }
 
 void LAPICTimerOnInterrupt()
 {
-    timer_manager->Tick();
+    const bool task_timer_timeout = timer_manager->Tick();
+    NotifyEndOfInterrupt();
+
+    if (task_timer_timeout)
+    {
+        SwitchTask();
+    }
 }
 
 Timer::Timer(unsigned long timeout, int value) : timeout_{timeout}, value_{value}
