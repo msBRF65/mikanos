@@ -136,7 +136,7 @@ void InitializeTaskBWindow()
     layer_manager->UpDown(task_b_window_layer_id, std::numeric_limits<int>::max());
 }
 
-void TaskB(int task_id, int data)
+void TaskB(uint64_t task_id, int64_t data)
 {
     printk("TaskB: task_id=%d, data=%d\n", task_id, data);
     char str[128];
@@ -149,6 +149,13 @@ void TaskB(int task_id, int data)
         WriteString(*task_b_window->Writer(), {24, 28}, str, {0, 0, 0});
         layer_manager->Draw(task_b_window_layer_id);
     }
+}
+
+void TaskIdle(uint64_t task_id, int64_t data)
+{
+    printk("TaskIdle: task_id=%lu, data=%lx\n", task_id, data);
+    while (true)
+        __asm__("hlt");
 }
 
 std::deque<Message> *main_queue;
@@ -195,24 +202,13 @@ KernelMainNewStack(
     __asm__("sti");
     bool textbox_cursor_visible = false;
 
-    std::vector<uint64_t> task_b_stack(1024);
-    uint64_t task_b_stack_end = reinterpret_cast<uint64_t>(&task_b_stack[1024]);
-
-    memset(&task_b_ctx, 0, sizeof(task_b_ctx));
-    task_b_ctx.rip = reinterpret_cast<uint64_t>(TaskB);
-    task_b_ctx.rdi = 1;
-    task_b_ctx.rsi = 43;
-
-    task_b_ctx.cr3 = GetCR3();
-    task_b_ctx.rflags = 0x202;
-    task_b_ctx.cs = kKernelCS;
-    task_b_ctx.ss = kKernelSS;
-    task_b_ctx.rsp = (task_b_stack_end & ~0xflu) - 8;
-
-    *reinterpret_cast<uint32_t *>(&task_b_ctx.fxsave_area[24]) = 0x1f80;
-
     InitializeTask();
-
+    const uint64_t taskb_id = task_manager->NewTask()
+                                  .InitContext(TaskB, 45)
+                                  .Wakeup()
+                                  .ID();
+    task_manager->NewTask().InitContext(TaskIdle, 0xdeadbeef);
+    task_manager->NewTask().InitContext(TaskIdle, 0xcafebabe);
     char str[128];
 
     // メッセージを繰り返し処理するイベントループ
@@ -256,6 +252,14 @@ KernelMainNewStack(
             }
         case Message::kKeyPush:
             InputTextWindow(msg.arg.keyboard.ascii);
+            if (msg.arg.keyboard.ascii == 's')
+            {
+                printk("sleep TaskB: %s\n", task_manager->Sleep(taskb_id).Name());
+            }
+            else if (msg.arg.keyboard.ascii == 'w')
+            {
+                printk("wakeup TaskB: %s\n", task_manager->Wakeup(taskb_id).Name());
+            }
             break;
         default:
             Log(kError, "Unknown message type: %d\n", msg.type);
