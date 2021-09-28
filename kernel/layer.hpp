@@ -49,6 +49,8 @@ public:
     void Hide(unsigned int id);
 
     Layer *FindLayerByPosition(Vector2D<int> pos, unsigned int exclude_id) const;
+    Layer *FindLayer(unsigned int id);
+    int GetHeight(unsigned int id);
 
 private:
     FrameBuffer *screen_{nullptr};
@@ -56,11 +58,25 @@ private:
     std::vector<std::unique_ptr<Layer>> layers_{};
     std::vector<Layer *> layer_stack_{};
     unsigned int latest_id_{0};
-
-    Layer *FindLayer(unsigned int id);
 };
 
 extern LayerManager *layer_manager;
+
+class ActiveLayer
+{
+public:
+    ActiveLayer(LayerManager &manager);
+    void SetMouseLayer(unsigned int mouse_layer);
+    void Activate(unsigned int layer_id);
+    unsigned int GetActive() const { return active_layer_; }
+
+private:
+    LayerManager &manager_;
+    unsigned int active_layer_{0};
+    unsigned int mouse_layer_{0};
+};
+
+extern ActiveLayer *active_layer;
 
 void InitializeLayer();
 void ProcessLayerMessage(const Message &msg);

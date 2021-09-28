@@ -43,13 +43,12 @@ int printk(const char *format, ...)
     return result;
 }
 
-std::shared_ptr<Window> main_window;
+std::shared_ptr<ToplevelWindow> main_window;
 unsigned int main_window_layer_id;
 void InitializeMainWindow()
 {
-    main_window = std::make_shared<Window>(
-        160, 52, screen_config.pixel_format);
-    DrawWindow(*main_window->Writer(), "Hello Window");
+    main_window = std::make_shared<ToplevelWindow>(
+        160, 52, screen_config.pixel_format, "Hello Window");
 
     main_window_layer_id = layer_manager->NewLayer()
                                .SetWindow(main_window)
@@ -60,17 +59,16 @@ void InitializeMainWindow()
     layer_manager->UpDown(main_window_layer_id, std::numeric_limits<int>::max());
 }
 
-std::shared_ptr<Window> text_window;
+std::shared_ptr<ToplevelWindow> text_window;
 unsigned int text_window_layer_id;
 void InitializeTextWindow()
 {
     const int win_w = 160;
     const int win_h = 52;
 
-    text_window = std::make_shared<Window>(
-        win_w, win_h, screen_config.pixel_format);
-    DrawWindow(*text_window->Writer(), "Text Box Test");
-    DrawTextbox(*text_window->Writer(), {4, 24}, {win_w - 8, win_h - 24 - 4});
+    text_window = std::make_shared<ToplevelWindow>(
+        win_w, win_h, screen_config.pixel_format, "Text Box Test");
+    DrawTextbox(*text_window->InnerWriter(), {0, 0}, text_window->InnerSize());
 
     text_window_layer_id = layer_manager->NewLayer()
                                .SetWindow(text_window)
@@ -119,13 +117,12 @@ void InputTextWindow(char c)
     layer_manager->Draw(text_window_layer_id);
 }
 
-std::shared_ptr<Window> task_b_window;
+std::shared_ptr<ToplevelWindow> task_b_window;
 unsigned int task_b_window_layer_id;
 void InitializeTaskBWindow()
 {
-    task_b_window = std::make_shared<Window>(
-        160, 52, screen_config.pixel_format);
-    DrawWindow(*task_b_window->Writer(), "TaskB Window");
+    task_b_window = std::make_shared<ToplevelWindow>(
+        160, 52, screen_config.pixel_format, "TaskB Window");
 
     task_b_window_layer_id = layer_manager->NewLayer()
                                  .SetWindow(task_b_window)
@@ -221,9 +218,7 @@ KernelMainNewStack(
 
     const int kTextboxCursorTimer = 1;
     const int kTimer05Sec = static_cast<int>(kTimerFreq * 0.5);
-    __asm__("cli");
     timer_manager->AddTimer(Timer{kTimer05Sec, kTextboxCursorTimer});
-    __asm__("sti");
     bool textbox_cursor_visible = false;
 
     InitializeTask();
@@ -247,8 +242,8 @@ KernelMainNewStack(
         __asm__("sti");
 
         sprintf(str, "%010lu", tick);
-        FillRectangle(*main_window->Writer(), {24, 28}, {8 * 10, 16}, {0xc6, 0xc6, 0xc6});
-        WriteString(*main_window->Writer(), {24, 28}, str, {0, 0, 0});
+        FillRectangle(*main_window->InnerWriter(), {20, 4}, {8 * 10, 16}, {0xc6, 0xc6, 0xc6});
+        WriteString(*main_window->InnerWriter(), {20, 4}, str, {0, 0, 0});
         layer_manager->Draw(main_window_layer_id);
 
         __asm__("cli");
@@ -278,14 +273,26 @@ KernelMainNewStack(
                 layer_manager->Draw(text_window_layer_id);
             }
         case Message::kKeyPush:
-            InputTextWindow(msg->arg.keyboard.ascii);
-            if (msg->arg.keyboard.ascii == 's')
+            if (auto act = active_layer->GetActive(); act == text_window_layer_id)
             {
-                printk("sleep TaskB: %s\n", task_manager->Sleep(taskb_id).Name());
+                InputTextWindow(msg->arg.keyboard.ascii);
             }
-            else if (msg->arg.keyboard.ascii == 'w')
+            else if (act == task_b_window_layer_id)
             {
-                printk("wakeup TaskB: %s\n", task_manager->Wakeup(taskb_id).Name());
+                if (msg->arg.keyboard.ascii == 's')
+                {
+                    printk("sleep TaskB: %s\n", task_manager->Sleep(taskb_id).Name());
+                }
+                else if (msg->arg.keyboard.ascii == 'w')
+                {
+                    printk("wakeup TaskB: %s\n", task_manager->Wakeup(taskb_id).Name());
+                }
+            }
+            else
+            {
+                printk("key push not handled: keycode %02x, ascii %02x\n",
+                       msg->arg.keyboard.keycode,
+                       msg->arg.keyboard.ascii);
             }
             break;
         case Message::kLayer:
