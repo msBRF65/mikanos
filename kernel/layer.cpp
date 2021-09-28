@@ -268,6 +268,7 @@ void ActiveLayer::Activate(unsigned int layer_id)
 }
 
 ActiveLayer *active_layer;
+std::map<unsigned int, uint64_t> *layer_task_map;
 
 void InitializeLayer()
 {
