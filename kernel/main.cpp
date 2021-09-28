@@ -28,6 +28,7 @@
 #include "acpi.hpp"
 #include "keyboard.hpp"
 #include "task.hpp"
+#include "terminal.hpp"
 
 int printk(const char *format, ...)
 {
@@ -219,6 +220,10 @@ KernelMainNewStack(
                                 .InitContext(TaskB, 45)
                                 .Wakeup()
                                 .ID();
+  const uint64_t task_terminal_id = task_manager->NewTask()
+                                        .InitContext(TaskTerminal, 0)
+                                        .Wakeup()
+                                        .ID();
 
   usb::xhci::Initialize();
   InitializeKeyboard();
@@ -263,6 +268,10 @@ KernelMainNewStack(
         textbox_cursor_visible = !textbox_cursor_visible;
         DrawTextCursor(textbox_cursor_visible);
         layer_manager->Draw(text_window_layer_id);
+
+        __asm__("cli");
+        task_manager->SendMessage(task_terminal_id, *msg);
+        __asm__("sti");
       }
       break;
     case Message::kKeyPush:
