@@ -2,15 +2,14 @@
 #include "interrupt.hpp"
 #include "acpi.hpp"
 #include "task.hpp"
-#include <limits>
 
 namespace
 {
-    const uint32_t kCountMax = 0xffffffffu;
-    volatile uint32_t &lvt_timer = *reinterpret_cast<uint32_t *>(0x0fee00320);
-    volatile uint32_t &initial_count = *reinterpret_cast<uint32_t *>(0xfee00380);
-    volatile uint32_t &current_count = *reinterpret_cast<uint32_t *>(0xfee00390);
-    volatile uint32_t &divide_config = *reinterpret_cast<uint32_t *>(0xfee003e0);
+  const uint32_t kCountMax = 0xffffffffu;
+  volatile uint32_t &lvt_timer = *reinterpret_cast<uint32_t *>(0xfee00320);
+  volatile uint32_t &initial_count = *reinterpret_cast<uint32_t *>(0xfee00380);
+  volatile uint32_t &current_count = *reinterpret_cast<uint32_t *>(0xfee00390);
+  volatile uint32_t &divide_config = *reinterpret_cast<uint32_t *>(0xfee003e0);
 }
 
 TimerManager *timer_manager;
@@ -18,78 +17,78 @@ unsigned long lapic_timer_freq;
 
 void InitializeLAPICTimer()
 {
-    timer_manager = new TimerManager;
+  timer_manager = new TimerManager;
 
-    divide_config = 0b1011;  // divide 1:1
-    lvt_timer = 0b001 << 16; // masked, one-shot
+  divide_config = 0b1011;  // divide 1:1
+  lvt_timer = 0b001 << 16; // masked, one-shot
 
-    StartLAPICTimer();
-    acpi::WaitMilliseconds(100);
-    const auto elapsed = LAPICTimerElapsed();
-    StopLAPICTimer();
+  StartLAPICTimer();
+  acpi::WaitMilliseconds(100);
+  const auto elapsed = LAPICTimerElapsed();
+  StopLAPICTimer();
 
-    lapic_timer_freq = static_cast<unsigned long>(elapsed) * 10;
+  lapic_timer_freq = static_cast<unsigned long>(elapsed) * 10;
 
-    divide_config = 0b1011;                                   // divide 1:1
-    lvt_timer = (0b010 << 16) | InterruptVector::kLAPICTimer; // not-masked, periodic
-    initial_count = lapic_timer_freq / kTimerFreq;
+  divide_config = 0b1011;                                   // divide 1:1
+  lvt_timer = (0b010 << 16) | InterruptVector::kLAPICTimer; // not-masked, periodic
+  initial_count = lapic_timer_freq / kTimerFreq;
 }
 
 void StartLAPICTimer()
 {
-    initial_count = kCountMax;
+  initial_count = kCountMax;
 }
 
 uint32_t LAPICTimerElapsed()
 {
-    return kCountMax - current_count;
+  return kCountMax - current_count;
 }
 
 void StopLAPICTimer()
 {
-    initial_count = 0;
+  initial_count = 0;
 }
 
 bool TimerManager::Tick()
 {
-    ++tick_;
+  ++tick_;
 
-    bool task_timer_timeout = false;
-    while (true)
+  bool task_timer_timeout = false;
+  while (true)
+  {
+    const auto &t = timers_.top();
+    if (t.Timeout() > tick_)
     {
-        const auto &t = timers_.top();
-        if (t.Timeout() > tick_)
-        {
-            break;
-        }
-
-        if (t.Value() == kTaskTimerValue)
-        {
-            task_timer_timeout = true;
-            timers_.pop();
-            timers_.push(Timer{tick_ + kTaskTimerPeriod, kTaskTimerValue});
-            continue;
-        }
-
-        Message m{Message::kTimerTimeout};
-        m.arg.timer.timeout = t.Timeout();
-        m.arg.timer.value = t.Value();
-        task_manager->SendMessage(1, m);
-
-        timers_.pop();
+      break;
     }
-    return task_timer_timeout;
+
+    if (t.Value() == kTaskTimerValue)
+    {
+      task_timer_timeout = true;
+      timers_.pop();
+      timers_.push(Timer{tick_ + kTaskTimerPeriod, kTaskTimerValue});
+      continue;
+    }
+
+    Message m{Message::kTimerTimeout};
+    m.arg.timer.timeout = t.Timeout();
+    m.arg.timer.value = t.Value();
+    task_manager->SendMessage(1, m);
+
+    timers_.pop();
+  }
+  return task_timer_timeout;
 }
 
 void LAPICTimerOnInterrupt()
 {
-    const bool task_timer_timeout = timer_manager->Tick();
-    NotifyEndOfInterrupt();
+  const bool task_timer_timeout = timer_manager->Tick();
+  NotifyEndOfInterrupt();
 
-    if (task_timer_timeout)
-    {
-        task_manager->SwitchTask();
-    }
+  if (task_timer_timeout)
+  {
+    task_manager->SwitchTask();
+  }
 }
 
 Timer::Timer(unsigned long timeout, int value) : timeout_{timeout}, value_{value}
@@ -98,10 +97,10 @@ Timer::Timer(unsigned long timeout, int value) : timeout_{timeout}, value_{value
 
 TimerManager::TimerManager()
 {
-    timers_.push(Timer{std::numeric_limits<unsigned long>::max(), -1});
+  timers_.push(Timer{std::numeric_limits<unsigned long>::max(), -1});
 }
 
 void TimerManager::AddTimer(const Timer &timer)
 {
-    timers_.push(timer);
+  timers_.push(timer);
 }

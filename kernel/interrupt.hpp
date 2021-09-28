@@ -10,8 +10,6 @@
 union InterruptDescriptorAttribute
 {
   uint16_t data;
-
-  // 型、フィールド名:ビット幅
   struct
   {
     uint16_t interrupt_stack_table : 3;

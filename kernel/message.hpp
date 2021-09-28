@@ -2,42 +2,42 @@
 
 enum class LayerOperation
 {
-    Move,
-    MoveRelative,
-    Draw
+  Move,
+  MoveRelative,
+  Draw
 };
 
 struct Message
 {
-    enum Type
-    {
-        kInterruptXHCI,
-        kTimerTimeout,
-        kKeyPush,
-        kLayer,
-        kLayerFinish,
-    } type;
+  enum Type
+  {
+    kInterruptXHCI,
+    kTimerTimeout,
+    kKeyPush,
+    kLayer,
+    kLayerFinish,
+  } type;
 
-    uint64_t src_task;
+  uint64_t src_task;
 
-    union
+  union
+  {
+    struct
     {
-        struct
-        {
-            unsigned long timeout;
-            int value;
-        } timer;
-        struct
-        {
-            uint8_t modifier;
-            uint8_t keycode;
-            char ascii;
-        } keyboard;
-        struct
-        {
-            LayerOperation op;
-            unsigned int layer_id;
-            int x, y;
-        } layer;
-    } arg;
+      unsigned long timeout;
+      int value;
+    } timer;
+    struct
+    {
+      uint8_t modifier;
+      uint8_t keycode;
+      char ascii;
+    } keyboard;
+    struct
+    {
+      LayerOperation op;
+      unsigned int layer_id;
+      int x, y;
+    } layer;
+  } arg;
 };
