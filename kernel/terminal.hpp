@@ -32,6 +32,7 @@ private:
 
     void ExecuteLine();
     void Print(const char *s);
+    void Print(char c);
 
     std::deque<std::array<char, kLineMax>> cmd_history_{};
     int cmd_history_index_{-1};
