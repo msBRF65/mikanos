@@ -4,3 +4,4 @@ OriginMain.c
 *.elf
 *.d
 *.bin
+*.img
