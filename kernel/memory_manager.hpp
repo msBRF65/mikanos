@@ -28,7 +28,7 @@ class FrameID
 public:
   explicit FrameID(size_t id) : id_{id} {}
   size_t ID() const { return id_; }
-  
+
   void *Frame() const { return reinterpret_cast<void *>(id_ * kBytesPerFrame); }
 
 private:
@@ -63,4 +63,5 @@ private:
   void SetBit(FrameID frame, bool allocated);
 };
 
+extern BitmapMemoryManager *memory_manager;
 void InitializeMemoryManager(const MemoryMap &memory_map);
