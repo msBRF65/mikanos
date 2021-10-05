@@ -1,8 +1,8 @@
 #pragma once
 
+#include <algorithm>
 #include <cstdint>
 #include "frame_buffer_config.hpp"
-#include <algorithm>
 
 struct PixelColor
 {
@@ -31,6 +31,7 @@ template <typename T>
 struct Vector2D
 {
   T x, y;
+
   template <typename U>
   Vector2D<T> &operator+=(const Vector2D<U> &rhs)
   {
@@ -131,7 +132,6 @@ class RGBResv8BitPerColorPixelWriter : public FrameBufferWriter
 {
 public:
   using FrameBufferWriter::FrameBufferWriter;
-
   virtual void Write(Vector2D<int> pos, const PixelColor &c) override;
 };
 
@@ -139,21 +139,22 @@ class BGRResv8BitPerColorPixelWriter : public FrameBufferWriter
 {
 public:
   using FrameBufferWriter::FrameBufferWriter;
-
   virtual void Write(Vector2D<int> pos, const PixelColor &c) override;
 };
 
-void FillRectangle(PixelWriter &writer, const Vector2D<int> &pos,
+void DrawRectangle(PixelWriter &writer, const Vector2D<int> &pos,
                    const Vector2D<int> &size, const PixelColor &c);
 
-void DrawRectangle(PixelWriter &writer, const Vector2D<int> &pos,
+void FillRectangle(PixelWriter &writer, const Vector2D<int> &pos,
                    const Vector2D<int> &size, const PixelColor &c);
 
 const PixelColor kDesktopBGColor{45, 118, 237};
 const PixelColor kDesktopFGColor{255, 255, 255};
 
 void DrawDesktop(PixelWriter &writer);
+
 extern FrameBufferConfig screen_config;
 extern PixelWriter *screen_writer;
 Vector2D<int> ScreenSize();
+
 void InitializeGraphics(const FrameBufferConfig &screen_config);

@@ -1,11 +1,17 @@
+/**
+ * @file main.cpp
+ *
+ * カーネル本体のプログラムを書いたファイル．
+ */
+
 #include <cstdint>
 #include <cstddef>
 #include <cstdio>
 
-#include <numeric>
-#include <vector>
 #include <deque>
 #include <limits>
+#include <numeric>
+#include <vector>
 
 #include "frame_buffer_config.hpp"
 #include "memory_map.hpp"
@@ -75,7 +81,7 @@ void InitializeTextWindow()
   text_window_layer_id = layer_manager->NewLayer()
                              .SetWindow(text_window)
                              .SetDraggable(true)
-                             .Move({350, 200})
+                             .Move({500, 100})
                              .ID();
 
   layer_manager->UpDown(text_window_layer_id, std::numeric_limits<int>::max());
@@ -121,8 +127,7 @@ void InputTextWindow(char c)
 
 alignas(16) uint8_t kernel_main_stack[1024 * 1024];
 
-extern "C" void
-KernelMainNewStack(
+extern "C" void KernelMainNewStack(
     const FrameBufferConfig &frame_buffer_config_ref,
     const MemoryMap &memory_map_ref,
     const acpi::RSDP &acpi_table,
@@ -189,6 +194,7 @@ KernelMainNewStack(
       __asm__("sti");
       continue;
     }
+
     __asm__("sti");
 
     switch (msg->type)

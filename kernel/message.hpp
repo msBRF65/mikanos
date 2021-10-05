@@ -5,7 +5,7 @@ enum class LayerOperation
   Move,
   MoveRelative,
   Draw,
-  DrawArea,
+  DrawArea
 };
 
 struct Message
@@ -28,12 +28,14 @@ struct Message
       unsigned long timeout;
       int value;
     } timer;
+
     struct
     {
       uint8_t modifier;
       uint8_t keycode;
       char ascii;
     } keyboard;
+
     struct
     {
       LayerOperation op;

@@ -1,6 +1,7 @@
 #include "timer.hpp"
-#include "interrupt.hpp"
+
 #include "acpi.hpp"
+#include "interrupt.hpp"
 #include "task.hpp"
 
 namespace
@@ -11,9 +12,6 @@ namespace
   volatile uint32_t &current_count = *reinterpret_cast<uint32_t *>(0xfee00390);
   volatile uint32_t &divide_config = *reinterpret_cast<uint32_t *>(0xfee003e0);
 }
-
-TimerManager *timer_manager;
-unsigned long lapic_timer_freq;
 
 void InitializeLAPICTimer()
 {
@@ -49,6 +47,21 @@ void StopLAPICTimer()
   initial_count = 0;
 }
 
+Timer::Timer(unsigned long timeout, int value)
+    : timeout_{timeout}, value_{value}
+{
+}
+
+TimerManager::TimerManager()
+{
+  timers_.push(Timer{std::numeric_limits<unsigned long>::max(), -1});
+}
+
+void TimerManager::AddTimer(const Timer &timer)
+{
+  timers_.push(timer);
+}
+
 bool TimerManager::Tick()
 {
   ++tick_;
@@ -77,8 +90,12 @@ bool TimerManager::Tick()
 
     timers_.pop();
   }
+
   return task_timer_timeout;
 }
+
+TimerManager *timer_manager;
+unsigned long lapic_timer_freq;
 
 void LAPICTimerOnInterrupt()
 {
@@ -89,18 +106,4 @@ void LAPICTimerOnInterrupt()
   {
     task_manager->SwitchTask();
   }
-}
-
-Timer::Timer(unsigned long timeout, int value) : timeout_{timeout}, value_{value}
-{
-}
-
-TimerManager::TimerManager()
-{
-  timers_.push(Timer{std::numeric_limits<unsigned long>::max(), -1});
-}
-
-void TimerManager::AddTimer(const Timer &timer)
-{
-  timers_.push(timer);
 }

@@ -1,8 +1,8 @@
 #pragma once
 
 #include <cstdint>
-#include <vector>
 #include <queue>
+#include <vector>
 #include <limits>
 #include "message.hpp"
 
@@ -10,7 +10,6 @@ void InitializeLAPICTimer();
 void StartLAPICTimer();
 uint32_t LAPICTimerElapsed();
 void StopLAPICTimer();
-void LAPICTimerOnInterrupt();
 
 class Timer
 {
@@ -23,6 +22,12 @@ private:
   unsigned long timeout_;
   int value_;
 };
+
+/** @brief タイマー優先度を比較する。タイムアウトが遠いほど優先度低。 */
+inline bool operator<(const Timer &lhs, const Timer &rhs)
+{
+  return lhs.Timeout() > rhs.Timeout();
+}
 
 class TimerManager
 {
@@ -44,7 +49,4 @@ const int kTimerFreq = 100;
 const int kTaskTimerPeriod = static_cast<int>(kTimerFreq * 0.02);
 const int kTaskTimerValue = std::numeric_limits<int>::min();
 
-inline bool operator<(const Timer &lhs, const Timer &rhs)
-{
-  return lhs.Timeout() > rhs.Timeout();
-}
+void LAPICTimerOnInterrupt();

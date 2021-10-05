@@ -129,5 +129,6 @@ void InitializeMouse()
   {
     mouse->OnInterrupt(buttons, displacement_x, displacement_y);
   };
+
   active_layer->SetMouseLayer(mouse_layer_id);
 }

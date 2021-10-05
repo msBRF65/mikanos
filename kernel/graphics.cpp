@@ -1,3 +1,8 @@
+/**
+ * @file graphics.cpp
+ *
+ * 画像描画関連のプログラムを集めたファイル．
+ */
 
 #include "graphics.hpp"
 
@@ -17,17 +22,6 @@ void BGRResv8BitPerColorPixelWriter::Write(Vector2D<int> pos, const PixelColor &
   p[2] = c.r;
 }
 
-void FillRectangle(PixelWriter &writer, const Vector2D<int> &pos,
-                   const Vector2D<int> &size, const PixelColor &c)
-{
-  for (int dy = 0; dy < size.y; ++dy)
-  {
-    for (int dx = 0; dx < size.x; ++dx)
-    {
-      writer.Write(pos + Vector2D<int>{dx, dy}, c);
-    }
-  }
-}
 void DrawRectangle(PixelWriter &writer, const Vector2D<int> &pos,
                    const Vector2D<int> &size, const PixelColor &c)
 {
@@ -40,6 +34,18 @@ void DrawRectangle(PixelWriter &writer, const Vector2D<int> &pos,
   {
     writer.Write(pos + Vector2D<int>{0, dy}, c);
     writer.Write(pos + Vector2D<int>{size.x - 1, dy}, c);
+  }
+}
+
+void FillRectangle(PixelWriter &writer, const Vector2D<int> &pos,
+                   const Vector2D<int> &size, const PixelColor &c)
+{
+  for (int dy = 0; dy < size.y; ++dy)
+  {
+    for (int dx = 0; dx < size.x; ++dx)
+    {
+      writer.Write(pos + Vector2D<int>{dx, dy}, c);
+    }
   }
 }
 
@@ -87,10 +93,12 @@ void InitializeGraphics(const FrameBufferConfig &screen_config)
   switch (screen_config.pixel_format)
   {
   case kPixelRGBResv8BitPerColor:
-    ::screen_writer = new (pixel_writer_buf) RGBResv8BitPerColorPixelWriter{screen_config};
+    ::screen_writer = new (pixel_writer_buf)
+        RGBResv8BitPerColorPixelWriter{screen_config};
     break;
   case kPixelBGRResv8BitPerColor:
-    ::screen_writer = new (pixel_writer_buf) BGRResv8BitPerColorPixelWriter{screen_config};
+    ::screen_writer = new (pixel_writer_buf)
+        BGRResv8BitPerColorPixelWriter{screen_config};
     break;
   default:
     exit(1);

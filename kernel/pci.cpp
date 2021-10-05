@@ -1,3 +1,9 @@
+/**
+ * @file pci.cpp
+ *
+ * PCI バス制御のプログラムを集めたファイル．
+ */
+
 #include "pci.hpp"
 
 #include "asmfunc.h"
@@ -7,6 +13,7 @@ namespace
 {
   using namespace pci;
 
+  /** @brief CONFIG_ADDRESS 用の 32 ビット整数を生成する */
   uint32_t MakeAddress(uint8_t bus, uint8_t device,
                        uint8_t function, uint8_t reg_addr)
   {
@@ -15,9 +22,11 @@ namespace
       return x << bits;
     };
 
-    return shl(1, 31) | shl(bus, 16) | shl(device, 11) | shl(function, 8) | (reg_addr & 0xfcu);
+    return shl(1, 31) // enable bit
+           | shl(bus, 16) | shl(device, 11) | shl(function, 8) | (reg_addr & 0xfcu);
   }
 
+  /** @brief devices[num_device] に情報を書き込み num_device をインクリメントする． */
   Error AddDevice(const Device &device)
   {
     if (num_device == devices.size())
@@ -32,6 +41,9 @@ namespace
 
   Error ScanBus(uint8_t bus);
 
+  /** @brief 指定のファンクションを devices に追加する．
+   * もし PCI-PCI ブリッジなら，セカンダリバスに対し ScanBus を実行する
+   */
   Error ScanFunction(uint8_t bus, uint8_t device, uint8_t function)
   {
     auto class_code = ReadClassCode(bus, device, function);
@@ -44,6 +56,7 @@ namespace
 
     if (class_code.Match(0x06u, 0x04u))
     {
+      // standard PCI-PCI bridge
       auto bus_numbers = ReadBusNumbers(bus, device, function);
       uint8_t secondary_bus = (bus_numbers >> 8) & 0xffu;
       return ScanBus(secondary_bus);
@@ -52,6 +65,9 @@ namespace
     return MAKE_ERROR(Error::kSuccess);
   }
 
+  /** @brief 指定のデバイス番号の各ファンクションをスキャンする．
+   * 有効なファンクションを見つけたら ScanFunction を実行する．
+   */
   Error ScanDevice(uint8_t bus, uint8_t device)
   {
     if (auto err = ScanFunction(bus, device, 0))
@@ -77,6 +93,9 @@ namespace
     return MAKE_ERROR(Error::kSuccess);
   }
 
+  /** @brief 指定のバス番号の各デバイスをスキャンする．
+   * 有効なデバイスを見つけたら ScanDevice を実行する．
+   */
   Error ScanBus(uint8_t bus)
   {
     for (uint8_t device = 0; device < 32; ++device)
@@ -93,6 +112,11 @@ namespace
     return MAKE_ERROR(Error::kSuccess);
   }
 
+  /** @brief 指定された MSI ケーパビリティ構造を読み取る
+   *
+   * @param dev  MSI ケーパビリティを読み込む PCI デバイス
+   * @param cap_addr  MSI ケーパビリティレジスタのコンフィグレーション空間アドレス
+   */
   MSICapability ReadMSICapability(const Device &dev, uint8_t cap_addr)
   {
     MSICapability msi_cap{};
@@ -118,6 +142,12 @@ namespace
     return msi_cap;
   }
 
+  /** @brief 指定された MSI ケーパビリティ構造に書き込む
+   *
+   * @param dev  MSI ケーパビリティを読み込む PCI デバイス
+   * @param cap_addr  MSI ケーパビリティレジスタのコンフィグレーション空間アドレス
+   * @param msi_cap  書き込む値
+   */
   void WriteMSICapability(const Device &dev, uint8_t cap_addr,
                           const MSICapability &msi_cap)
   {
@@ -140,6 +170,7 @@ namespace
     }
   }
 
+  /** @brief 指定された MSI レジスタを設定する */
   Error ConfigureMSIRegister(const Device &dev, uint8_t cap_addr,
                              uint32_t msg_addr, uint32_t msg_data,
                              unsigned int num_vector_exponent)
@@ -164,13 +195,13 @@ namespace
     return MAKE_ERROR(Error::kSuccess);
   }
 
+  /** @brief 指定された MSI レジスタを設定する */
   Error ConfigureMSIXRegister(const Device &dev, uint8_t cap_addr,
                               uint32_t msg_addr, uint32_t msg_data,
                               unsigned int num_vector_exponent)
   {
     return MAKE_ERROR(Error::kNotImplemented);
   }
-
 }
 
 namespace pci
@@ -194,6 +225,12 @@ namespace pci
   {
     WriteAddress(MakeAddress(bus, device, function, 0x00));
     return ReadData() & 0xffffu;
+  }
+
+  uint16_t ReadDeviceId(uint8_t bus, uint8_t device, uint8_t function)
+  {
+    WriteAddress(MakeAddress(bus, device, function, 0x00));
+    return ReadData() >> 16;
   }
 
   uint8_t ReadHeaderType(uint8_t bus, uint8_t device, uint8_t function)
@@ -224,11 +261,6 @@ namespace pci
     return (header_type & 0x80u) == 0;
   }
 
-  uint16_t ReadDeviceId(uint8_t bus, uint8_t device, uint8_t function)
-  {
-    WriteAddress(MakeAddress(bus, device, function, 0x00));
-    return ReadData() >> 16;
-  }
   Error ScanAllBus()
   {
     num_device = 0;
@@ -258,6 +290,7 @@ namespace pci
     WriteAddress(MakeAddress(dev.bus, dev.device, dev.function, reg_addr));
     return ReadData();
   }
+
   void WriteConfReg(const Device &dev, uint8_t reg_addr, uint32_t value)
   {
     WriteAddress(MakeAddress(dev.bus, dev.device, dev.function, reg_addr));
@@ -274,11 +307,13 @@ namespace pci
     const auto addr = CalcBarAddress(bar_index);
     const auto bar = ReadConfReg(device, addr);
 
+    // 32 bit address
     if ((bar & 4u) == 0)
     {
       return {bar, MAKE_ERROR(Error::kSuccess)};
     }
 
+    // 64 bit address
     if (bar_index >= 5)
     {
       return {0, MAKE_ERROR(Error::kIndexOutOfRange)};

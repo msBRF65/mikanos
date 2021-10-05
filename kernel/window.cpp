@@ -1,35 +1,17 @@
 #include "window.hpp"
+
 #include "logger.hpp"
 #include "font.hpp"
 
 namespace
 {
-  const int kCloseButtonWidth = 16;
-  const int kCloseButtonHeight = 14;
-  const char close_button[kCloseButtonHeight][kCloseButtonWidth + 1] = {
-      "...............@",
-      ".:::::::::::::$@",
-      ".:::::::::::::$@",
-      ".:::@@::::@@::$@",
-      ".::::@@::@@:::$@",
-      ".:::::@@@@::::$@",
-      ".::::::@@:::::$@",
-      ".:::::@@@@::::$@",
-      ".::::@@::@@:::$@",
-      ".:::@@::::@@::$@",
-      ".:::::::::::::$@",
-      ".:::::::::::::$@",
-      ".$$$$$$$$$$$$$$@",
-      "@@@@@@@@@@@@@@@@",
-  };
-
   void DrawTextbox(PixelWriter &writer, Vector2D<int> pos, Vector2D<int> size,
                    const PixelColor &background,
                    const PixelColor &border_light,
                    const PixelColor &border_dark)
   {
     auto fill_rect =
-        [&writer](Vector2D<int> pos, Vector2D<int> size, const PixelColor& c)
+        [&writer](Vector2D<int> pos, Vector2D<int> size, const PixelColor &c)
     {
       FillRectangle(writer, pos, size, c);
     };
@@ -45,8 +27,7 @@ namespace
   }
 }
 
-Window::Window(int width, int height, PixelFormat shadow_format)
-    : width_{width}, height_{height}
+Window::Window(int width, int height, PixelFormat shadow_format) : width_{width}, height_{height}
 {
   data_.resize(height);
   for (int y = 0; y < height; ++y)
@@ -79,9 +60,13 @@ void Window::DrawTo(FrameBuffer &dst, Vector2D<int> pos, const Rectangle<int> &a
 
   const auto tc = transparent_color_.value();
   auto &writer = dst.Writer();
-  for (int y = std::max(0, 0 - pos.y); y < std::min(Height(), writer.Height() - pos.y); ++y)
+  for (int y = std::max(0, 0 - pos.y);
+       y < std::min(Height(), writer.Height() - pos.y);
+       ++y)
   {
-    for (int x = std::max(0, 0 - pos.x); x < std::min(Width(), writer.Width() - pos.x); ++x)
+    for (int x = std::max(0, 0 - pos.x);
+         x < std::min(Width(), writer.Width() - pos.x);
+         ++x)
     {
       const auto c = At(Vector2D<int>{x, y});
       if (c != tc)
@@ -107,6 +92,12 @@ const PixelColor &Window::At(Vector2D<int> pos) const
   return data_[pos.y][pos.x];
 }
 
+void Window::Write(Vector2D<int> pos, PixelColor c)
+{
+  data_[pos.y][pos.x] = c;
+  shadow_buffer_.Writer().Write(pos, c);
+}
+
 int Window::Width() const
 {
   return width_;
@@ -115,12 +106,6 @@ int Window::Width() const
 int Window::Height() const
 {
   return height_;
-}
-
-void Window::Write(Vector2D<int> pos, PixelColor c)
-{
-  data_[pos.y][pos.x] = c;
-  shadow_buffer_.Writer().Write(pos, c);
 }
 
 Vector2D<int> Window::Size() const
@@ -155,6 +140,28 @@ void ToplevelWindow::Deactivate()
 Vector2D<int> ToplevelWindow::InnerSize() const
 {
   return Size() - kTopLeftMargin - kBottomRightMargin;
+}
+
+namespace
+{
+  const int kCloseButtonWidth = 16;
+  const int kCloseButtonHeight = 14;
+  const char close_button[kCloseButtonHeight][kCloseButtonWidth + 1] = {
+      "...............@",
+      ".:::::::::::::$@",
+      ".:::::::::::::$@",
+      ".:::@@::::@@::$@",
+      ".::::@@::@@:::$@",
+      ".:::::@@@@::::$@",
+      ".::::::@@:::::$@",
+      ".:::::@@@@::::$@",
+      ".::::@@::@@:::$@",
+      ".:::@@::::@@::$@",
+      ".:::::::::::::$@",
+      ".:::::::::::::$@",
+      ".$$$$$$$$$$$$$$@",
+      "@@@@@@@@@@@@@@@@",
+  };
 }
 
 void DrawWindow(PixelWriter &writer, const char *title)
