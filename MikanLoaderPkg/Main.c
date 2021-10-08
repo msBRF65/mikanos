@@ -13,7 +13,6 @@
 #include "elf.h"
 #include "memory_map.hpp"
 
-// #@@range_begin(get_memory_map)
 EFI_STATUS GetMemoryMap(struct MemoryMap *map)
 {
   if (map->buffer == NULL)
@@ -29,9 +28,7 @@ EFI_STATUS GetMemoryMap(struct MemoryMap *map)
       &map->descriptor_size,
       &map->descriptor_version);
 }
-// #@@range_end(get_memory_map)
 
-// #@@range_begin(get_memory_type)
 const CHAR16 *GetMemoryTypeUnicode(EFI_MEMORY_TYPE type)
 {
   switch (type)
@@ -72,9 +69,7 @@ const CHAR16 *GetMemoryTypeUnicode(EFI_MEMORY_TYPE type)
     return L"InvalidMemoryType";
   }
 }
-// #@@range_end(get_memory_type)
 
-// #@@range_begin(save_memory_map)
 EFI_STATUS SaveMemoryMap(struct MemoryMap *map, EFI_FILE_PROTOCOL *file)
 {
   CHAR8 buf[256];
@@ -106,7 +101,6 @@ EFI_STATUS SaveMemoryMap(struct MemoryMap *map, EFI_FILE_PROTOCOL *file)
 
   return EFI_SUCCESS;
 }
-// #@@range_end(save_memory_map)
 
 EFI_STATUS OpenRootDir(EFI_HANDLE image_handle, EFI_FILE_PROTOCOL **root)
 {
