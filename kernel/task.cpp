@@ -107,7 +107,51 @@ Task &TaskManager::NewTask()
   return *tasks_.emplace_back(new Task{latest_id_});
 }
 
-void TaskManager::SwitchTask(bool current_sleep)
+void TaskManager::SwitchTask(const TaskContext &current_ctx)
+{
+  TaskContext &task_ctx = task_manager->CurrentTask().Context();
+  memcpy(&task_ctx, &current_ctx, sizeof(TaskContext));
+  Task *current_task = RotateCurrentRunQueue(false);
+  if (&CurrentTask() != current_task)
+  {
+    RestoreContext(&CurrentTask().Context());
+  }
+}
+
+void TaskManager::Sleep(Task *task)
+{
+  if (!task->Running())
+  {
+    return;
+  }
+
+  task->SetRunning(false);
+
+  if (task == running_[current_level_].front())
+  {
+    Task *current_task = RotateCurrentRunQueue(true);
+    SwitchContext(&CurrentTask().Context(), &current_task->Context());
+    return;
+  }
+
+  Erase(running_[task->Level()], task);
+}
+
+Error TaskManager::Sleep(uint64_t id)
+{
+  auto it = std::find_if(tasks_.begin(), tasks_.end(),
+                         [id](const auto &t)
+                         { return t->ID() == id; });
+  if (it == tasks_.end())
+  {
+    return MAKE_ERROR(Error::kNoSuchTask);
+  }
+
+  Sleep(it->get());
+  return MAKE_ERROR(Error::kSuccess);
+}
+
+Task *TaskManager::RotateCurrentRunQueue(bool current_sleep)
 {
   auto &level_queue = running_[current_level_];
   Task *current_task = level_queue.front();
@@ -134,41 +178,7 @@ void TaskManager::SwitchTask(bool current_sleep)
     }
   }
 
-  Task *next_task = running_[current_level_].front();
-
-  SwitchContext(&next_task->Context(), &current_task->Context());
-}
-
-void TaskManager::Sleep(Task *task)
-{
-  if (!task->Running())
-  {
-    return;
-  }
-
-  task->SetRunning(false);
-
-  if (task == running_[current_level_].front())
-  {
-    SwitchTask(true);
-    return;
-  }
-
-  Erase(running_[task->Level()], task);
-}
-
-Error TaskManager::Sleep(uint64_t id)
-{
-  auto it = std::find_if(tasks_.begin(), tasks_.end(),
-                         [id](const auto &t)
-                         { return t->ID() == id; });
-  if (it == tasks_.end())
-  {
-    return MAKE_ERROR(Error::kNoSuchTask);
-  }
-
-  Sleep(it->get());
-  return MAKE_ERROR(Error::kSuccess);
+  return current_task;
 }
 
 void TaskManager::Wakeup(Task *task, int level)
